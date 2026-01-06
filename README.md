@@ -18,6 +18,7 @@ Each story goes through a develop-review-judge loop (max 5 iterations) until com
 - `DEVELOPER_SUBAGENTS_KIRO.md` - Developer implementation guidelines  
 - `REVIEWER_SUBAGENTS_KIRO.md` - Adversarial review instructions
 - `REVIEW_JUDGE_KIRO.md` - Review filtering and approval logic
+- `EPICS.example.md` - Example project structure template
 
 ## Usage Tip
 
