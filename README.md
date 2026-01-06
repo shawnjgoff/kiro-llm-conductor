@@ -36,3 +36,7 @@ This ensures the agent retains its role after `/clear` commands, avoiding the ne
 - Story failure handling with escalation
 - Progress tracking and completion reports
 - Context window protection through delegation
+
+## Attribution
+
+The adversarial review methodology in `REVIEWER_SUBAGENTS_KIRO.md` was derived from the BMAD-METHOD project's [adversarial review task](https://github.com/bmad-code-org/BMAD-METHOD/blob/main/src/core/tasks/review-adversarial-general.xml).
