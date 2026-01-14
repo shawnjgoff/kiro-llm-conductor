@@ -17,6 +17,67 @@ Critically evaluate the implementation of a story. Find what's wrong, missing, o
 - **Find Real Issues**: Report genuine problems, not fabricated ones
 - **Be Thorough**: "Looks good" without evidence is NOT acceptable - show your work
 - **Check Git Reality**: Verify claimed changes actually exist
+- **Manage Command Output**: Use safe inspection techniques to avoid context overflow
+
+---
+
+## Output Management (CRITICAL)
+
+**Large command outputs can overflow your context window and cause failure.**
+
+### Safe Git Inspection
+```bash
+# Check commit details safely
+TMPFILE=$(mktemp -p .agent_tmp)
+git show <commit-hash> > "$TMPFILE" 2>&1
+
+# Count lines before displaying
+LINES=$(wc -l < "$TMPFILE")
+if [ "$LINES" -lt 100 ]; then
+    cat "$TMPFILE"
+else
+    echo "Large diff ($LINES lines), showing summary:"
+    git show --stat <commit-hash>
+    echo "First 20 lines of changes:"
+    head -20 "$TMPFILE"
+fi
+```
+
+### Safe File Examination
+```bash
+# Check file size before reading
+SIZE=$(wc -l < "path/to/file")
+if [ "$SIZE" -lt 50 ]; then
+    cat "path/to/file"
+else
+    echo "Large file ($SIZE lines), showing key sections:"
+    head -10 "path/to/file"
+    echo "... (content omitted) ..."
+    tail -10 "path/to/file"
+fi
+```
+
+### Long-Running Process Management (CRITICAL)
+
+**Never run applications or servers without timeout/background - they will block and cause failure.**
+
+### Safe Process Testing
+```bash
+# Test app startup with timeout
+TMPFILE=$(mktemp -p .agent_tmp)
+timeout 10s bun tauri dev > "$TMPFILE" 2>&1 &
+APP_PID=$!
+sleep 3
+if kill -0 $APP_PID 2>/dev/null; then
+    echo "App started successfully"
+    kill $APP_PID
+    echo "Startup output:"
+    head -20 "$TMPFILE"
+else
+    echo "App failed to start:"
+    cat "$TMPFILE"
+fi
+```
 
 ---
 
@@ -119,12 +180,32 @@ For each changed file, check:
 - Missing documentation for public APIs
 - Dead or unreachable code
 
+**Dead Code Analysis (MEDIUM/LOW)**
+- Check if "unused" code is referenced in story's implementation steps
+- Verify if code became obsolete due to refactoring in this story
+- Flag newly-dead code created by implementation changes
+- Don't flag intentional stubs/scaffolding mentioned in story context
+
+**Stub Documentation (HIGH/MEDIUM)**
+- Verify stubs include comments indicating:
+  - Which story/work item must complete before integration
+  - Which story/work item will perform the actual integration
+- Example: `// TODO: Implement in Story 2.3, integrate in Story 2.5`
+- Missing stub documentation = HIGH (affects project coordination)
+
 **Architecture Issues (HIGH/MEDIUM)**
 - Violates project patterns/standards
 - Wrong module placement
 - Circular dependencies
 - Breaks encapsulation
 - Inconsistent with existing codebase
+
+**Dependency Changes (HIGH)**
+- New dependency added without justification in commit message
+- Commit message missing alternatives considered
+- Dependency duplicates functionality of existing dependency
+- Project tech stack documentation not updated for architectural changes
+- Ask: "Why don't existing dependencies satisfy this requirement?"
 
 **Project-Specific Standards (HIGH/MEDIUM)**
 - Violates coding standards document

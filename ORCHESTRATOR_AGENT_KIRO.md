@@ -62,6 +62,17 @@ Epic 1: Foundation (MUST complete first)
     Epic 6: Polish & Testing (depends on 5)
 ```
 
+### Determine Placeholder Values
+There are placeholders needed by yourself and your sub-agents. Ask the user if they want to supply them or if they'd like you to search for them.
+
+- [PROJECT_CODING_STANDARDS].md
+- [PROJECT_EPICS].md
+- [PROJECT_REQUIREMENTS].md
+- [PROJECT_ARCHITECTURE].md
+- [PROJECT_ROADMAP].md
+- [PROJECT_FUTURE_FEATURES].md
+- [Any other project specification files]
+
 ### Parallel Development Paths
 After foundation epics complete, identify parallel paths:
 - **Path A (Backend)**: Epic 2 → Epic 5

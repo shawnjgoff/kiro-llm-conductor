@@ -19,6 +19,99 @@ Implement the assigned story completely, following all acceptance criteria, codi
 5. **Test Your Work**: Verify acceptance criteria are actually met before declaring completion
 6. **Follow Project Standards**: Adhere to the project's coding conventions and patterns
 7. **Handle Errors Gracefully**: Use the project's error handling patterns consistently
+8. **Manage Command Output**: Redirect verbose command output to prevent context overflow
+
+---
+
+## Output Management (CRITICAL)
+
+**Commands that generate large output can overflow your context window and cause failure.**
+
+### Safe Command Patterns
+```bash
+# Redirect build output to temp files
+TMPFILE=$(mktemp -p .agent_tmp)
+bun install > "$TMPFILE" 2>&1
+echo "Build completed, output saved to $TMPFILE"
+
+# Check for errors without flooding context
+if grep -q "error\|Error\|ERROR" "$TMPFILE"; then
+    echo "Errors found:"
+    grep -C 2 "error\|Error\|ERROR" "$TMPFILE" | head -20
+fi
+
+# Check output size before displaying
+LINES=$(wc -l < "$TMPFILE")
+if [ "$LINES" -lt 50 ]; then
+    cat "$TMPFILE"
+else
+    echo "Output too large ($LINES lines), showing first/last 10:"
+    head -10 "$TMPFILE"
+    echo "... ($((LINES - 20)) lines omitted) ..."
+    tail -10 "$TMPFILE"
+fi
+```
+
+### Commands to Always Redirect
+- `bun install`, `npm install`, `cargo build`
+- `docker build`, `docker run`
+- `git log` (without limits)
+- Any compilation or build process
+- File system operations on large directories
+
+### Long-Running Process Management (CRITICAL)
+
+**Applications and servers will block execution flow and cause agent failure.**
+
+### Safe Process Patterns
+```bash
+# Background processes with timeout
+timeout 30s bun tauri dev &
+APP_PID=$!
+sleep 5  # Let app start
+# Do your testing/verification
+kill $APP_PID 2>/dev/null || true
+
+# Test if app starts without blocking
+TMPFILE=$(mktemp -p .agent_tmp)
+timeout 10s bun tauri dev > "$TMPFILE" 2>&1 &
+APP_PID=$!
+sleep 3
+if kill -0 $APP_PID 2>/dev/null; then
+    echo "App started successfully"
+    kill $APP_PID
+else
+    echo "App failed to start, checking output:"
+    cat "$TMPFILE"
+fi
+
+# Check if process would start (dry run)
+bun tauri dev --help  # Safe - just shows help
+```
+
+### Never Run These Without Background/Timeout
+- `bun tauri dev`, `npm run dev`, `cargo run`
+- `bun run e2e`, `playwright test` (unless with --reporter=json)
+- Any web server or GUI application
+- Interactive commands waiting for input
+
+### Safe Inspection Techniques
+```bash
+# Count matches before showing them
+COUNT=$(grep -c "pattern" "$TMPFILE")
+echo "Found $COUNT matches"
+
+# Show context only if manageable
+if [ "$COUNT" -lt 10 ]; then
+    grep -C 3 "pattern" "$TMPFILE"
+else
+    echo "Too many matches, showing first 5:"
+    grep -C 1 "pattern" "$TMPFILE" | head -15
+fi
+
+# Use tail for recent output
+tail -20 "$TMPFILE"
+```
 
 ---
 
@@ -92,6 +185,20 @@ Follow the project's established patterns and conventions as defined in the codi
 // Document public APIs
 ```
 
+**Stub Documentation**
+```
+// When creating stubs/placeholder code, always include comments with:
+// - Which story/work item must complete before integration: // Requires: Story X.Y
+// - Which story/work item will perform integration: // Integrate in: Story X.Z
+// Example: // TODO: Implement user validation in Story 2.3, integrate in Story 2.5
+
+function validateUser(user) {
+    // Requires: Story 2.3 - User validation service
+    // Integrate in: Story 2.5 - Authentication flow
+    return true; // Stub - always passes for now
+}
+```
+
 **Testing**
 ```
 // Add tests as required by project standards
@@ -104,6 +211,26 @@ Follow the project's established patterns and conventions as defined in the codi
 - Use clear, descriptive commit messages
 - Format: `[Story X.Y] Brief description of change`
 - Example: `[Story 1.3] Add user authentication system`
+
+### Dependency Changes (CRITICAL)
+When adding or removing dependencies:
+1. **Commit message MUST include**:
+   - Justification: why is this dependency needed?
+   - Alternatives considered: what else did you evaluate and why was it rejected?
+2. **Update project tech stack documentation** if the change is architectural (new patterns, major tooling). See [PROJECT_CODING_STANDARDS].md for project-specific requirements.
+3. Example commit message:
+   ```
+   [Story 1.4] Add pygit2 for Git repository access
+   
+   Justification: Need to read Git diffs and expand context from blob data.
+   
+   Alternatives considered:
+   - GitPython: Higher-level but slower, doesn't expose raw diff data
+   - subprocess git: Would require parsing text output, fragile
+   - dulwich: Pure Python but less mature than pygit2
+   
+   Chose pygit2 for direct libgit2 bindings with full diff/blob access.
+   ```
 
 ---
 
