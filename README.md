@@ -1,6 +1,6 @@
-# Kiro Orchestration System
+# LLM Orchestration System
 
-A multi-agent development framework for managing complex software projects through coordinated subagents.
+A multi-agent development framework for managing complex software projects through coordinated subagents and llm-driven reviews. This lets an agent work an a dependency tree of tasks; it reviews its own work in a fresh context to produce more reliable output that requires less effort to review and approve or revise.
 
 ## How It Works
 
